@@ -1,11 +1,91 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html class="light" lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Web Croflo</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Jabarano Coffee Dago | Croflo</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "inverse-on-surface": "#eaf2f9",
+              "tertiary-container": "#00262a",
+              error: "#ba1a1a",
+              "surface-container-high": "#e1e9f0",
+              "on-primary-fixed-variant": "#36466d",
+              "primary-fixed-dim": "#b6c5f5",
+              "on-primary-container": "#7988b4",
+              "surface-dim": "#d3dbe2",
+              "secondary-fixed-dim": "#b0c6ff",
+              "on-error": "#ffffff",
+              "on-secondary-fixed-variant": "#2a457d",
+              background: "#f5faff",
+              "on-primary": "#ffffff",
+              "error-container": "#ffdad6",
+              "surface-bright": "#f5faff",
+              "surface-container": "#e7eff6",
+              "on-secondary": "#ffffff",
+              "surface-variant": "#dbe4ea",
+              "secondary-fixed": "#d9e2ff",
+              "on-primary-fixed": "#07193f",
+              "on-surface": "#151d22",
+              surface: "#f5faff",
+              tertiary: "#000d10",
+              "secondary-container": "#a4bdfe",
+              "on-error-container": "#93000a",
+              secondary: "#435d97",
+              "on-tertiary": "#ffffff",
+              "surface-container-lowest": "#ffffff",
+              "inverse-primary": "#b6c5f5",
+              "outline-variant": "#c5c6cf",
+              "on-secondary-container": "#314b84",
+              "primary-container": "#0f2046",
+              "surface-container-low": "#edf5fc",
+              "primary-fixed": "#dae2ff",
+              "on-tertiary-fixed": "#001f23",
+              primary: "#000926",
+              "on-background": "#151d22",
+              outline: "#75777f",
+              "on-tertiary-container": "#0d97a5",
+              "inverse-surface": "#293137",
+              "tertiary-fixed-dim": "#69d6e4",
+              "surface-container-highest": "#dbe4ea",
+              "on-tertiary-fixed-variant": "#004f56",
+              "on-secondary-fixed": "#001945",
+              "tertiary-fixed": "#8ff1ff",
+              "surface-tint": "#4e5d87",
+              "on-surface-variant": "#45464e",
+            },
+            borderRadius: {
+              DEFAULT: "1rem",
+              lg: "2rem",
+              xl: "3rem",
+              full: "9999px",
+            },
+            fontFamily: {
+              headline: ["Inter"],
+              body: ["Inter"],
+              label: ["Inter"],
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      body {
+        font-family: 'Inter', sans-serif;
+      }
+    </style>
   </head>
-  <body>
+  <body class="bg-background text-on-background min-h-screen">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
