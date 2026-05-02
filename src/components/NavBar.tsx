@@ -24,7 +24,6 @@ export default function NavBar() {
 
   const isHome = pathname === '/' || pathname === '' || pathname.startsWith('/place')
   const isMap = pathname.startsWith('/map')
-  const isSettings = pathname.startsWith('/settings')
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 border-r border-slate-200 bg-slate-50 flex flex-col py-6 px-4 z-50 hidden lg:flex">
@@ -38,18 +37,10 @@ export default function NavBar() {
           <span className="material-symbols-outlined">map</span>
           <span>Map View</span>
         </Link>
-        <Link to="/settings" className={`${base} ${isSettings ? activeCls : inactiveCls}`}>
-          <span className="material-symbols-outlined">settings</span>
-          <span>Settings</span>
-        </Link>
       </nav>
 
       <div className="mt-auto px-4 pt-6 border-t border-slate-200">
         <div className="flex flex-col gap-1">
-          <Link to="/help" className="flex items-center gap-3 text-slate-500 px-4 py-3 font-sans text-sm hover:bg-blue-50 rounded-full transition-all">
-            <span className="material-symbols-outlined">help</span>
-            <span>Help</span>
-          </Link>
           <button onClick={handleLogout} className="flex w-full items-center gap-3 text-slate-500 px-4 py-3 font-sans text-sm hover:bg-blue-50 hover:text-red-600 rounded-full transition-all text-left">
             <span className="material-symbols-outlined">logout</span>
             <span>Logout</span>
