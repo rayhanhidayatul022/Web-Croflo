@@ -1,0 +1,23 @@
+[
+  {
+    "id": "jabarano",
+    "name": "Jabarano Coffee",
+    "address": "Jl. Ir. H. Juanda No.10, Dago, Bandung",
+    "rating": 4.8,
+    "seats": { "available": 12, "capacity": 45 }
+  },
+  {
+    "id": "bagi-kopi",
+    "name": "Bagi Kopi",
+    "address": "Jl. Braga No.85, Bandung",
+    "rating": 4.5,
+    "seats": { "available": 8, "capacity": 36 }
+  },
+  {
+    "id": "jabarano-dago",
+    "name": "Jabarano Coffee Dago",
+    "address": "Jl. Ir. H. Juanda No.10, Dago, Bandung",
+    "rating": 4.8,
+    "seats": { "available": 12, "capacity": 45 }
+  }
+]
