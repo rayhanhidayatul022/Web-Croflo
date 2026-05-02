@@ -44,8 +44,7 @@ function formatCoordinates(value: unknown) {
 
 function formatClockLabel(value: Date) {
   const hours = String(value.getHours()).padStart(2, '0')
-  const minutes = String(value.getMinutes()).padStart(2, '0')
-  return `${hours}:${minutes}`
+  return `${hours}:00`
 }
 
 function readHistory(placeId: string) {
@@ -132,10 +131,12 @@ export default function DetailPlace() {
   const location = useLocation()
   const [place, setPlace] = useState<Place | undefined>((location.state as any)?.place)
   const [liveCount, setLiveCount] = useState<number | undefined>(undefined)
-  const [liveImageUrl, setLiveImageUrl] = useState<string>(`${API_BASE}/latest-image?ts=${Date.now()}`)
+  const [liveImageUrl, setLiveImageUrl] = useState<string>('http://13.213.18.54:8000/video')
   const [hourlyHistory, setHourlyHistory] = useState<HourlyPoint[]>(() => (id ? readHistory(id) : []))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -196,7 +197,7 @@ export default function DetailPlace() {
         const data = (await response.json()) as LiveMetrics
         const count = Number(data.count)
         const nextCount = Number.isFinite(count) ? count : 0
-        const nextImageUrl = `${API_BASE}/latest-image?ts=${Date.now()}`
+        const nextImageUrl = 'http://13.213.18.54:8000/video'
 
         if (cancelled) return
 
@@ -206,7 +207,7 @@ export default function DetailPlace() {
       } catch {
         if (!cancelled) {
           setLiveCount(undefined)
-          setLiveImageUrl(`${API_BASE}/latest-image?ts=${Date.now()}`)
+          setLiveImageUrl('http://13.213.18.54:8000/video')
         }
       }
     }
@@ -266,7 +267,10 @@ export default function DetailPlace() {
                     <span className="text-sm text-on-secondary-container">{locationLabel}</span>
                   </div>
                 </div>
-                <button className="bg-primary-container text-on-primary px-6 py-3 rounded-full font-bold flex items-center gap-2 shadow-lg shadow-primary-container/20 hover:scale-105 transition-transform active:scale-95">
+                <button 
+                  onClick={() => setShowShareModal(true)}
+                  className="bg-primary-container text-on-primary px-6 py-3 rounded-full font-bold flex items-center gap-2 shadow-lg shadow-primary-container/20 hover:scale-105 transition-transform active:scale-95"
+                >
                   <span className="material-symbols-outlined">share</span>
                   <span>Share Live Status</span>
                 </button>
@@ -293,13 +297,13 @@ export default function DetailPlace() {
 
                     <div className="bg-white p-6 rounded-lg shadow-[10px_20px_40px_-15px_rgba(15,32,70,0.08)] border border-sky-tint/20 flex flex-col justify-between h-40">
                       <div>
-                        <p className="text-xs font-bold text-on-primary-container uppercase tracking-widest mb-1">Jumlah Orang</p>
-                        <div className="flex items-baseline gap-1">
-                          <h3 className="text-3xl font-extrabold text-primary-container">{Number.isFinite(occupancyCount) ? Math.round(occupancyCount) : '—'}</h3>
-                          <span className="text-sm font-medium text-on-primary-container">realtime</span>
+                        <p className="text-xs font-bold text-on-primary-container uppercase tracking-widest mb-2">Prediksi Kepadatan</p>
+                        <div className="flex flex-col">
+                          <h3 className="text-5xl font-black text-primary-container leading-none">{Number.isFinite(occupancyCount) ? Math.round(occupancyCount) : '—'}</h3>
+                          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1.5">Orang</span>
                         </div>
                       </div>
-                      <div className="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden">
+                      <div className="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden mt-2">
                         <div
                           className="bg-secondary-container h-full"
                           style={{ width: `${Math.max(8, Math.min(100, Number.isFinite(occupancyCount) ? Math.round(occupancyCount * 3) : 8))}%` }}
@@ -319,24 +323,24 @@ export default function DetailPlace() {
                     </div>
                   </div>
 
-                  <section className="bg-white p-1 rounded-lg shadow-[10px_20px_40px_-15px_rgba(15,32,70,0.08)] border border-sky-tint/20 overflow-hidden">
-                    <div className="px-5 py-4 border-b border-surface-container flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="material-symbols-outlined text-primary-container">videocam</span>
-                        <h2 className="font-bold text-primary-container">Live Visual Feed</h2>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <span className="px-3 py-1 bg-surface-container text-[10px] font-bold rounded-full text-on-surface-variant">CAM-01: Main Hall</span>
-                        <span className="px-3 py-1 bg-error-container text-[10px] font-bold rounded-full text-on-error-container flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 bg-error rounded-full" />
-                          REC
-                        </span>
-                      </div>
-                    </div>
-                    <div className="relative aspect-video w-full bg-slate-900 group cursor-pointer">
+                  <section className="bg-white p-1 rounded-xl shadow-[10px_20px_40px_-15px_rgba(15,32,70,0.08)] border border-sky-tint/20 overflow-hidden">
+                    <div className="relative aspect-video w-full bg-slate-900 group cursor-pointer rounded-lg overflow-hidden">
                       <img alt={place.name} className="w-full h-full object-cover opacity-80" src={liveImageUrl || placeImage} />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-6">
-                        <div className="flex justify-between items-end gap-4">
+                      
+                      {/* Top Overlay */}
+                      <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-start bg-gradient-to-b from-black/60 to-transparent">
+                        <div className="bg-[#B91C1C] text-white px-3.5 py-1.5 rounded-md flex items-center gap-2.5 shadow-sm border border-red-800">
+                          <div className="w-2.5 h-2.5 bg-[#fecaca] rounded-full animate-pulse shadow-[0_0_8px_rgba(254,202,202,0.8)]" />
+                          <h2 className="font-extrabold text-[12px] tracking-[0.15em] uppercase pt-[1px]">Live Visual Feed</h2>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="px-3 py-1.5 bg-slate-800/80 backdrop-blur-sm text-[10px] font-bold rounded-md text-slate-200">CAM-01: Main Hall</span>
+                        </div>
+                      </div>
+
+                      {/* Bottom Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex flex-col justify-end p-6 pointer-events-none">
+                        <div className="flex justify-between items-end gap-4 pointer-events-auto">
                           <div className="text-white">
                               <p className="text-lg font-bold">{place.name}</p>
                           </div>
@@ -361,10 +365,6 @@ export default function DetailPlace() {
                         <span className="material-symbols-outlined text-[#0f2046]">insights</span>
                         Occupancy Forecast
                       </h2>
-                      <select className="text-[10px] font-bold border-none bg-surface-container px-3 py-1 rounded-full text-on-surface-variant ring-0 focus:ring-0">
-                        <option>Today</option>
-                        <option>Tomorrow</option>
-                      </select>
                     </div>
                     <div className="space-y-4 h-64 flex items-end justify-between gap-3 px-2">
                       {chartPoints.length > 0 ? (
@@ -451,6 +451,43 @@ export default function DetailPlace() {
           ) : null}
         </div>
       </main>
+
+      {showShareModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl relative">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-slate-800">Share Location</h3>
+              <button onClick={() => setShowShareModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <p className="text-sm font-medium text-slate-500 mb-2">Link to share</p>
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+              <input 
+                type="text" 
+                readOnly 
+                value={window.location.href} 
+                className="bg-transparent border-none p-0 text-sm font-medium text-slate-800 w-full focus:ring-0 truncate mr-4 outline-none"
+              />
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href)
+                  setLinkCopied(true)
+                  setTimeout(() => setLinkCopied(false), 2000)
+                }} 
+                className={`text-sm font-bold whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1 ${linkCopied ? 'text-green-600' : 'text-[#0d97a5] hover:text-[#0a7a85]'}`}
+              >
+                {linkCopied ? (
+                  <>
+                    <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                    COPIED
+                  </>
+                ) : 'COPY LINK'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
