@@ -82,8 +82,7 @@ export default function Register() {
           </Link>
           
           <div className="mb-8">
-            <h1 className="text-4xl font-extrabold text-[#0F2046] tracking-tight mb-2">Create an account</h1>
-            <p className="text-sm font-medium text-slate-500">Join the smart crowd intelligence network.</p>
+            <h1 className="text-4xl font-extrabold text-[#0F2046] tracking-tight">Create an account</h1>
           </div>
 
           {error && (

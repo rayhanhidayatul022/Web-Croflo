@@ -62,8 +62,7 @@ export default function Login() {
           </Link>
           
           <div className="mb-8">
-            <h1 className="text-4xl font-extrabold text-[#0F2046] tracking-tight mb-2">Welcome back</h1>
-            <p className="text-sm font-medium text-slate-500">Enter your details to access crowd intelligence.</p>
+            <h1 className="text-4xl font-extrabold text-[#0F2046] tracking-tight">Welcome back</h1>
           </div>
 
           <div className="bg-blue-50/60 border border-blue-100 p-4 mb-6 rounded-2xl">
