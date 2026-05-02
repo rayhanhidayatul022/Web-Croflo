@@ -1,37 +1,47 @@
 import React from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import logo from '../assets/logo.png'
 
 export default function NavBar() {
+  const location = useLocation()
+  const pathname = location.pathname
+
+  const base = 'flex items-center gap-3 py-3 px-4 rounded-lg transition-colors duration-200 cursor-pointer active:scale-95 font-sans tracking-tight text-sm'
+  const activeCls = 'text-[#0f2046] font-semibold bg-blue-50/50'
+  const inactiveCls = 'text-slate-500 hover:text-[#0f2046] hover:bg-blue-50 font-medium'
+
+  const isHome = pathname === '/' || pathname === '' || pathname.startsWith('/place')
+  const isMap = pathname.startsWith('/map')
+  const isSettings = pathname.startsWith('/settings')
+
   return (
-    <aside className="fixed left-0 top-0 h-full flex flex-col pt-16 py-4 w-64 bg-slate-50 border-r border-blue-50 z-40 hidden lg:flex">
-      <nav className="px-3 mt-2">
-        <a className="flex items-center gap-3 bg-blue-100 text-blue-900 rounded-full px-4 py-3 my-2 font-sans text-sm duration-200 ease-in-out" href="#">
+    <aside className="fixed left-0 top-0 h-screen w-64 border-r border-slate-200 bg-slate-50 flex flex-col py-6 px-4 z-50 hidden lg:flex">
+      <img src={logo} alt="Croflo" className="h-6 mb-8 px-4 w-auto" />
+      <nav className="flex-1 space-y-2">
+        <Link to="/" className={`${base} ${isHome ? activeCls : inactiveCls}`}>
           <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>home</span>
           <span>Home</span>
-        </a>
-        <a className="flex items-center gap-3 text-slate-500 px-4 py-3 my-2 font-sans text-sm hover:bg-blue-50 rounded-full transition-all duration-200 ease-in-out" href="#">
+        </Link>
+        <Link to="/map" className={`${base} ${isMap ? activeCls : inactiveCls}`}>
           <span className="material-symbols-outlined">map</span>
           <span>Map View</span>
-        </a>
-        <a className="flex items-center gap-3 text-slate-500 px-4 py-3 my-2 font-sans text-sm hover:bg-blue-50 rounded-full transition-all duration-200 ease-in-out" href="#">
-          <span className="material-symbols-outlined">location_on</span>
-          <span>Places</span>
-        </a>
-        <a className="flex items-center gap-3 text-slate-500 px-4 py-3 my-2 font-sans text-sm hover:bg-blue-50 rounded-full transition-all duration-200 ease-in-out" href="#">
+        </Link>
+        <Link to="/settings" className={`${base} ${isSettings ? activeCls : inactiveCls}`}>
           <span className="material-symbols-outlined">settings</span>
           <span>Settings</span>
-        </a>
+        </Link>
       </nav>
 
-      <div className="px-4 mt-auto mb-6">
+      <div className="mt-auto px-4 pt-6 border-t border-slate-200">
         <div className="flex flex-col gap-1">
-          <a className="flex items-center gap-3 text-slate-500 px-4 py-3 font-sans text-sm hover:bg-blue-50 rounded-full transition-all" href="#">
+          <Link to="/help" className="flex items-center gap-3 text-slate-500 px-4 py-3 font-sans text-sm hover:bg-blue-50 rounded-full transition-all">
             <span className="material-symbols-outlined">help</span>
             <span>Help</span>
-          </a>
-          <a className="flex items-center gap-3 text-slate-500 px-4 py-3 font-sans text-sm hover:bg-blue-50 rounded-full transition-all" href="#">
+          </Link>
+          <Link to="/logout" className="flex items-center gap-3 text-slate-500 px-4 py-3 font-sans text-sm hover:bg-blue-50 rounded-full transition-all">
             <span className="material-symbols-outlined">logout</span>
             <span>Logout</span>
-          </a>
+          </Link>
         </div>
       </div>
     </aside>

@@ -1,10 +1,11 @@
 import React from 'react'
+import logo from '../assets/logo.png'
 
 export default function Header() {
   return (
     <header className="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-6 h-16 bg-white/90 backdrop-blur-md border-b border-blue-100 shadow-sm">
       <div className="flex items-center gap-4">
-        <span className="text-2xl font-bold tracking-tighter text-blue-900">Croflo</span>
+        <img src={logo} alt="Croflo" className="h-8" />
       </div>
 
       <div className="flex-1 px-6">
