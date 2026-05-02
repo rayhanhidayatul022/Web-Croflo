@@ -1,12 +1,42 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, collection, query, limit, getDocs } from 'firebase/firestore'
 import { db } from '../services/firebase'
+import Header from '../components/Header'
+import NavBar from '../components/NavBar'
+import { MapContainer, TileLayer, Marker, Circle } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
+
+const getDensityLevel = (id: string) => {
+  const sum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  const val = sum % 3
+  return val === 0 ? 'low' : val === 1 ? 'moderate' : 'high'
+}
+
+const getDensityColor = (level: string) => {
+  if (level === 'low') return '#22c55e' // green-500
+  if (level === 'moderate') return '#eab308' // yellow-500
+  return '#ef4444' // red-500
+}
+
+const customMarkerIcon = L.divIcon({
+  className: 'bg-transparent',
+  html: `<div class="w-10 h-10 bg-[#0F2046] text-white rounded-full flex items-center justify-center shadow-xl border-[3px] border-white hover:scale-110 transition-transform cursor-pointer">
+           <span class="material-symbols-outlined text-[20px]">location_on</span>
+         </div>`,
+  iconSize: [40, 40],
+  iconAnchor: [20, 40],
+})
 
 type Place = {
   id: string
-  name?: string
+  name: string
+  address?: string
   coordinates?: any
+  image?: string
+  category?: string
+  rating?: number
 }
 
 function parseCoordinates(value: any): { lat: number; lng: number } | null {
@@ -23,102 +53,238 @@ function parseCoordinates(value: any): { lat: number; lng: number } | null {
   return null
 }
 
-function loadGoogleMaps(apiKey: string) {
-  return new Promise<void>((resolve, reject) => {
-    if (typeof (window as any).google !== 'undefined' && (window as any).google.maps) return resolve()
-
-    const existing = document.querySelector(`script[data-google-maps]`)
-    if (existing) {
-      existing.addEventListener('load', () => resolve())
-      return
-    }
-
-    const s = document.createElement('script')
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`
-    s.async = true
-    s.defer = true
-    s.setAttribute('data-google-maps', '1')
-    s.onload = () => resolve()
-    s.onerror = () => reject(new Error('Failed to load Google Maps script'))
-    document.head.appendChild(s)
-  })
-}
-
 export default function MapView() {
-  const mapRef = useRef<HTMLDivElement | null>(null)
-  const [loading, setLoading] = useState(true)
   const [places, setPlaces] = useState<Place[]>([])
+  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [heatmapActive, setHeatmapActive] = useState(false)
   const navigate = useNavigate()
 
+
   useEffect(() => {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-    if (!apiKey) console.warn('VITE_GOOGLE_MAPS_API_KEY not set')
-
     let mounted = true
-    const placeIds = ['place_001', 'place_002', 'place_003', 'place_004', 'place_005']
 
-    const fetchPlaces = async () => {
-      const results: Place[] = []
-      for (const id of placeIds) {
-        try {
-          const snap = await getDoc(doc(db, 'places', id))
-          if (snap.exists()) results.push({ id: snap.id, ...(snap.data() as any) })
-        } catch (err) {
-          // ignore individual errors
-        }
-      }
-      if (mounted) setPlaces(results)
-    }
-
-    const init = async () => {
+    const fetchSpecificPlaces = async () => {
+      const placeIds = ['place_001', 'place_002', 'place_003', 'place_004', 'place_005']
+      const fetched: Place[] = []
+      
       try {
-        if (apiKey) await loadGoogleMaps(apiKey)
-        await fetchPlaces()
+        for (const id of placeIds) {
+          const snap = await getDoc(doc(db, 'places', id))
+          if (snap.exists()) {
+            fetched.push({ id: snap.id, ...snap.data() } as Place)
+          }
+        }
+        if (fetched.length === 0) {
+          const q = query(collection(db, 'places'), limit(5))
+          const snap = await getDocs(q)
+          snap.forEach(docSnap => fetched.push({ id: docSnap.id, ...docSnap.data() } as Place))
+        }
       } catch (err) {
-        console.error(err)
-      } finally {
-        if (mounted) setLoading(false)
+        console.error('Error fetching places:', err)
+      }
+      
+      if (mounted) {
+        setPlaces(fetched)
+        if (fetched.length > 0) setSelectedPlace(fetched[0])
+        setLoading(false)
       }
     }
 
-    init()
-    return () => {
-      mounted = false
-    }
+    fetchSpecificPlaces()
+    return () => { mounted = false }
   }, [])
 
-  // create map and markers when places are available
-  useEffect(() => {
-    const g = (window as any).google
-    if (!g || !mapRef.current) return
-
-    const center = places.length
-      ? (() => {
-          const first = parseCoordinates(places[0].coordinates)
-          return first ?? { lat: -6.914744, lng: 107.60981 }
-        })()
-      : { lat: -6.914744, lng: 107.60981 }
-
-    const map = new g.maps.Map(mapRef.current, { center, zoom: 13 })
-
-    for (const p of places) {
-      const pos = parseCoordinates(p.coordinates)
-      if (!pos) continue
-      const marker = new g.maps.Marker({ position: pos, map, title: p.name ?? p.id })
-      marker.addListener('click', () => {
-        navigate(`/place/${p.id}`, { state: { place: p } })
-      })
+  const handleSeeDetails = () => {
+    if (selectedPlace) {
+      navigate('/place/' + selectedPlace.id, { state: { place: selectedPlace } })
     }
-  }, [places, navigate])
+  }
+
+  const mapCenter = selectedPlace 
+    ? parseCoordinates(selectedPlace.coordinates) || { lat: -6.914744, lng: 107.60981 }
+    : { lat: -6.914744, lng: 107.60981 }
+
+  if (loading) return <div className="flex h-screen items-center justify-center">Loading Map...</div>
+
+  // Calculations for dynamic side panel
+  const occupancyCount = selectedPlace?.rating ?? 0
+  const waitTime = occupancyCount >= 30 ? '12m' : occupancyCount >= 15 ? '8m' : '5m'
+  const densityPercent = occupancyCount >= 30 ? '84%' : occupancyCount >= 15 ? '72%' : '58%'
+  const trendLabel = occupancyCount >= 30 ? 'High' : occupancyCount >= 15 ? 'Moderate' : 'Low'
+  const trendIcon = occupancyCount >= 30 ? 'trending_up' : occupancyCount >= 15 ? 'trending_flat' : 'trending_down'
+  const trendColor = occupancyCount >= 30 ? 'text-red-500' : occupancyCount >= 15 ? 'text-yellow-500' : 'text-blue-400'
+  const densityStatus = occupancyCount >= 30 ? 'High Crowd Density' : occupancyCount >= 15 ? 'Moderate Crowd Density' : 'Low Crowd Density'
+  const densityStatusBg = occupancyCount >= 30 ? 'bg-red-500' : occupancyCount >= 15 ? 'bg-yellow-500' : 'bg-green-500'
 
   return (
-    <div className="min-h-screen bg-background text-on-background">
-      <div className="lg:ml-64 pt-20 pb-12 px-8">
-        <h1 className="text-3xl font-extrabold mb-4">Map View</h1>
-        {loading && <p className="text-sm text-slate-500">Loading map and places...</p>}
-        <div ref={mapRef} style={{ width: '100%', height: '70vh' }} className="rounded-lg overflow-hidden shadow" />
-        <p className="mt-4 text-sm text-slate-500">Markers limited to five configured places; click a marker to open the place detail.</p>
-      </div>
+    <div className="min-h-screen bg-background text-on-background selection:bg-secondary-container">
+      <Header />
+      <NavBar />
+      
+      <main className="lg:ml-64 pt-16 h-screen relative overflow-hidden bg-surface-container-low">
+        <div className="absolute inset-0" style={{ zIndex: 0 }}>
+          <MapContainer
+            center={[mapCenter.lat, mapCenter.lng]}
+            zoom={14}
+            style={{ width: '100%', height: '100%' }}
+            zoomControl={false}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            />
+            {places.map((p) => {
+              const pos = parseCoordinates(p.coordinates)
+              if (!pos) return null
+              const densityLevel = getDensityLevel(p.id)
+              const densityColor = getDensityColor(densityLevel)
+              return (
+                <React.Fragment key={p.id}>
+                  {heatmapActive && (
+                    <Circle
+                      center={[pos.lat, pos.lng]}
+                      radius={350}
+                      pathOptions={{ fillColor: densityColor, color: densityColor, fillOpacity: 0.35, stroke: false }}
+                    />
+                  )}
+                  <Marker
+                    position={[pos.lat, pos.lng]}
+                    eventHandlers={{ click: () => setSelectedPlace(p) }}
+                    icon={customMarkerIcon}
+                  />
+                </React.Fragment>
+              )
+            })}
+          </MapContainer>
+        </div>
+
+        <div className="absolute top-6 left-8 right-8 flex justify-between items-start pointer-events-none z-10">
+          <div className="flex gap-4 pointer-events-auto">
+            <div className="bg-white/90 backdrop-blur shadow-xl rounded-full px-6 py-3 flex items-center gap-4 border border-blue-50 w-80 md:w-96">
+              <span className="material-symbols-outlined text-slate-400">search</span>
+              <input 
+                className="bg-transparent border-none focus:ring-0 text-sm w-full placeholder:text-slate-400" 
+                placeholder="Search places, landmarks..." 
+                type="text"
+              />
+            </div>
+          </div>
+          
+          <div className="bg-white/90 backdrop-blur shadow-xl rounded-2xl p-2 border border-blue-50 pointer-events-auto flex flex-col gap-2">
+            <button className="p-2 bg-blue-50 text-blue-700 rounded-xl"><span className="material-symbols-outlined">layers</span></button>
+            <button className="p-2 text-slate-400 hover:text-slate-600 rounded-xl"><span className="material-symbols-outlined">my_location</span></button>
+            <div className="h-px bg-slate-100 mx-2"></div>
+            <button className="p-2 text-slate-400 hover:text-slate-600 rounded-xl"><span className="material-symbols-outlined">add</span></button>
+            <button className="p-2 text-slate-400 hover:text-slate-600 rounded-xl"><span className="material-symbols-outlined">remove</span></button>
+          </div>
+        </div>
+
+        {selectedPlace && (
+          <div className="absolute right-8 top-24 bottom-8 w-full max-w-[400px] hidden md:block z-20 transition-all">
+            <div className="bg-white/95 backdrop-blur-xl h-full rounded-[2.5rem] shadow-2xl border border-white/50 flex flex-col overflow-hidden">
+              <div className="h-48 relative">
+                <img 
+                  className="w-full h-full object-cover" 
+                  src={selectedPlace.image || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=800'} 
+                  alt={selectedPlace.name} 
+                />
+                <div className="absolute top-6 right-6 bg-white/30 backdrop-blur-md p-2 rounded-full cursor-pointer hover:bg-white/50 transition-colors" onClick={() => setSelectedPlace(null)}>
+                  <span className="material-symbols-outlined text-white">close</span>
+                </div>
+                <div className={`absolute bottom-6 left-8 ${densityStatusBg} text-white text-[11px] font-black px-4 py-1.5 rounded-full uppercase tracking-wider shadow-lg`}>
+                  {densityStatus}
+                </div>
+              </div>
+
+              <div className="p-8 flex-1 overflow-y-auto">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h2 className="text-2xl font-extrabold text-[#0F2046] leading-tight tracking-tight">{selectedPlace.name}</h2>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="material-symbols-outlined text-sm text-blue-600">location_on</span>
+                      <p className="text-slate-500 font-medium text-xs line-clamp-1">{selectedPlace.address || 'Jl. Asia Afrika No.65, Bandung'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 mb-8">
+                  <div className="bg-slate-50 p-3 rounded-2xl flex flex-col items-center border border-slate-100">
+                    <span className="material-symbols-outlined text-blue-600 text-sm mb-1">groups</span>
+                    <span className="text-sm font-black text-[#0F2046]">{densityPercent}</span>
+                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Capacity</span>
+                  </div>
+                  <div className="bg-slate-50 p-3 rounded-2xl flex flex-col items-center border border-green-100 ring-2 ring-green-100/50">
+                    <span className="material-symbols-outlined text-green-500 text-sm mb-1">timer</span>
+                    <span className="text-sm font-black text-[#0F2046]">{waitTime}</span>
+                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Wait Time</span>
+                  </div>
+                  <div className="bg-slate-50 p-3 rounded-2xl flex flex-col items-center border border-slate-100">
+                    <span className={`material-symbols-outlined ${trendColor} text-sm mb-1`}>{trendIcon}</span>
+                    <span className="text-sm font-black text-[#0F2046]">{trendLabel}</span>
+                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Trend</span>
+                  </div>
+                </div>
+
+                <div className="mb-8">
+                  <div className="flex justify-between items-end mb-4">
+                    <h3 className="text-[10px] font-black text-[#0F2046] uppercase tracking-widest">Crowd Prediction</h3>
+                  </div>
+                  <div className="relative h-20 w-full flex items-end justify-between px-1">
+                    {[40, 55, 30, 45, 65].map((h, i) => (
+                      <div 
+                        key={i} 
+                        className={"w-8 rounded-t-lg transition-all " + (i === 2 ? 'bg-[#0F2046] shadow-lg' : 'bg-blue-100')} 
+                        style={{ height: h + '%' }}
+                      >
+                        {i === 2 && <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-[8px] font-black text-[#0F2046]">Now</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-8 pt-0">
+                <button 
+                  onClick={handleSeeDetails}
+                  className="w-full bg-[#0F2046] text-white py-4 rounded-full font-black text-sm shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
+                >
+                  <span>SEE LIVE DETAILS</span>
+                  <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="absolute bottom-8 left-8 bg-white/90 backdrop-blur-xl rounded-2xl px-6 py-4 border border-blue-50 shadow-2xl z-10 flex flex-col gap-3">
+          <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.1em]">Density Intelligence</h4>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+              <span className="text-[10px] font-black text-[#0F2046]">Low</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
+              <span className="text-[10px] font-black text-[#0F2046]">Moderate</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+              <span className="text-[10px] font-black text-[#0F2046]">High</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="absolute bottom-8 right-8 md:right-[432px] z-10 transition-all">
+          <button 
+            onClick={() => setHeatmapActive(!heatmapActive)}
+            className={`flex items-center gap-3 px-5 py-3 rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all ${heatmapActive ? 'bg-amber-500 text-white' : 'bg-[#0F2046] text-white'}`}
+          >
+            <span className="material-symbols-outlined text-sm">waves</span>
+            <span className="text-xs font-black tracking-tight">{heatmapActive ? 'Heatmap: ON' : 'Heatmap: OFF'}</span>
+          </button>
+        </div>
+      </main>
     </div>
   )
 }
