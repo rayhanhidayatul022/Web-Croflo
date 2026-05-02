@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { doc, getDoc, collection, query, limit, getDocs } from 'firebase/firestore'
 import { db } from '../services/firebase'
@@ -58,6 +58,8 @@ export default function MapView() {
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null)
   const [loading, setLoading] = useState(true)
   const [heatmapActive, setHeatmapActive] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [mapInstance, setMapInstance] = useState<L.Map | null>(null)
   const navigate = useNavigate()
 
 
@@ -86,7 +88,6 @@ export default function MapView() {
       
       if (mounted) {
         setPlaces(fetched)
-        if (fetched.length > 0) setSelectedPlace(fetched[0])
         setLoading(false)
       }
     }
@@ -100,6 +101,14 @@ export default function MapView() {
       navigate('/place/' + selectedPlace.id, { state: { place: selectedPlace } })
     }
   }
+
+  const filteredPlaces = useMemo(() => {
+    if (!searchQuery.trim()) return places
+    return places.filter(p => 
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.address && p.address.toLowerCase().includes(searchQuery.toLowerCase()))
+    )
+  }, [places, searchQuery])
 
   const mapCenter = selectedPlace 
     ? parseCoordinates(selectedPlace.coordinates) || { lat: -6.914744, lng: 107.60981 }
@@ -122,9 +131,10 @@ export default function MapView() {
       <Header />
       <NavBar />
       
-      <main className="lg:ml-64 pt-16 h-screen relative overflow-hidden bg-surface-container-low">
+      <main className="lg:ml-64 mt-16 h-[calc(100vh-4rem)] relative overflow-hidden bg-surface-container-low">
         <div className="absolute inset-0" style={{ zIndex: 0 }}>
           <MapContainer
+            ref={setMapInstance}
             center={[mapCenter.lat, mapCenter.lng]}
             zoom={14}
             style={{ width: '100%', height: '100%' }}
@@ -134,7 +144,7 @@ export default function MapView() {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             />
-            {places.map((p) => {
+            {filteredPlaces.map((p) => {
               const pos = parseCoordinates(p.coordinates)
               if (!pos) return null
               const densityLevel = getDensityLevel(p.id)
@@ -164,19 +174,21 @@ export default function MapView() {
             <div className="bg-white/90 backdrop-blur shadow-xl rounded-full px-6 py-3 flex items-center gap-4 border border-blue-50 w-80 md:w-96">
               <span className="material-symbols-outlined text-slate-400">search</span>
               <input 
-                className="bg-transparent border-none focus:ring-0 text-sm w-full placeholder:text-slate-400" 
+                className="bg-transparent border-none focus:ring-0 text-sm w-full placeholder:text-slate-400 outline-none" 
                 placeholder="Search places, landmarks..." 
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
           </div>
           
           <div className="bg-white/90 backdrop-blur shadow-xl rounded-2xl p-2 border border-blue-50 pointer-events-auto flex flex-col gap-2">
-            <button className="p-2 bg-blue-50 text-blue-700 rounded-xl"><span className="material-symbols-outlined">layers</span></button>
-            <button className="p-2 text-slate-400 hover:text-slate-600 rounded-xl"><span className="material-symbols-outlined">my_location</span></button>
+            <button onClick={() => setHeatmapActive(!heatmapActive)} className={`p-2 rounded-xl transition-colors ${heatmapActive ? 'bg-blue-50 text-blue-700' : 'text-slate-400 hover:text-slate-600'}`}><span className="material-symbols-outlined">layers</span></button>
+            <button onClick={() => mapInstance?.setView([-6.914744, 107.60981], 14)} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl"><span className="material-symbols-outlined">my_location</span></button>
             <div className="h-px bg-slate-100 mx-2"></div>
-            <button className="p-2 text-slate-400 hover:text-slate-600 rounded-xl"><span className="material-symbols-outlined">add</span></button>
-            <button className="p-2 text-slate-400 hover:text-slate-600 rounded-xl"><span className="material-symbols-outlined">remove</span></button>
+            <button onClick={() => mapInstance?.zoomIn()} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl"><span className="material-symbols-outlined">add</span></button>
+            <button onClick={() => mapInstance?.zoomOut()} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl"><span className="material-symbols-outlined">remove</span></button>
           </div>
         </div>
 

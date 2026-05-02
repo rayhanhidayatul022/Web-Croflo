@@ -1,10 +1,22 @@
 import React from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { signOut } from 'firebase/auth'
+import { auth } from '../services/firebase'
 import logo from '../assets/logo.png'
 
 export default function NavBar() {
   const location = useLocation()
+  const navigate = useNavigate()
   const pathname = location.pathname
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth)
+      navigate('/login')
+    } catch (err) {
+      console.error('Logout failed', err)
+    }
+  }
 
   const base = 'flex items-center gap-3 py-3 px-4 rounded-lg transition-colors duration-200 cursor-pointer active:scale-95 font-sans tracking-tight text-sm'
   const activeCls = 'text-[#0f2046] font-semibold bg-blue-50/50'
@@ -38,10 +50,10 @@ export default function NavBar() {
             <span className="material-symbols-outlined">help</span>
             <span>Help</span>
           </Link>
-          <Link to="/logout" className="flex items-center gap-3 text-slate-500 px-4 py-3 font-sans text-sm hover:bg-blue-50 rounded-full transition-all">
+          <button onClick={handleLogout} className="flex w-full items-center gap-3 text-slate-500 px-4 py-3 font-sans text-sm hover:bg-blue-50 hover:text-red-600 rounded-full transition-all text-left">
             <span className="material-symbols-outlined">logout</span>
             <span>Logout</span>
-          </Link>
+          </button>
         </div>
       </div>
     </aside>

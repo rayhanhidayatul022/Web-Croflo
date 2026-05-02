@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { collection, getDocs } from 'firebase/firestore'
+import { useNavigate, Link } from 'react-router-dom'
+import { MapContainer, TileLayer, Circle } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
 import Header from '../components/Header'
 import NavBar from '../components/NavBar'
-import { db } from '../services/firebase'
+import { db, auth } from '../services/firebase'
+import { onAuthStateChanged } from 'firebase/auth'
 
 type Place = {
   id: string
@@ -26,11 +29,51 @@ function formatCoordinates(value: unknown) {
   return 'Unknown location'
 }
 
+function parseCoords(value: unknown): { lat: number; lng: number } | null {
+  if (typeof value === 'string') {
+    const parts = value.split(',').map((p) => parseFloat(p.trim()))
+    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+      return { lat: parts[0], lng: parts[1] }
+    }
+  }
+  if (Array.isArray(value) && value.length === 2) {
+    const lat = parseFloat(value[0])
+    const lng = parseFloat(value[1])
+    if (!isNaN(lat) && !isNaN(lng)) return { lat, lng }
+  }
+  if (typeof value === 'object' && value !== null) {
+    const lat = parseFloat((value as any).latitude || (value as any).lat)
+    const lng = parseFloat((value as any).longitude || (value as any).lng)
+    if (!isNaN(lat) && !isNaN(lng)) return { lat, lng }
+  }
+  return null
+}
+
 export default function Home() {
   const navigate = useNavigate()
   const [places, setPlaces] = useState<Place[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [userName, setUserName] = useState('User')
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const docRef = doc(db, 'users', user.uid)
+          const docSnap = await getDoc(docRef)
+          if (docSnap.exists()) {
+            setUserName(docSnap.data().username || user.displayName || 'User')
+          } else {
+            setUserName(user.displayName || 'User')
+          }
+        } catch(err) {
+          console.error(err)
+        }
+      }
+    })
+    return () => unsubscribe()
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -72,6 +115,9 @@ export default function Home() {
   }
 
   const featuredPlace = useMemo(() => places[0], [places])
+  const topPlaces = useMemo(() => {
+    return [...places].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0)).slice(0, 2)
+  }, [places])
 
   return (
     <div className="min-h-screen bg-background text-on-background">
@@ -82,7 +128,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           {/* Greeting */}
           <header className="mb-10">
-            <h1 className="text-4xl font-extrabold text-primary-container tracking-tight">Good Morning, Alex</h1>
+            <h1 className="text-4xl font-extrabold text-primary-container tracking-tight">Good Morning, {userName}</h1>
             <p className="text-secondary font-medium mt-1">Ready to find your perfect workspace today?</p>
           </header>
 
@@ -122,29 +168,52 @@ export default function Home() {
               <div className="bg-white rounded-lg p-6 shadow-lg border border-blue-50 h-full flex flex-col">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-lg font-bold text-primary-container">Crowd Hotspots</h3>
-                  <span className="text-pacific-blue text-xs font-bold cursor-pointer hover:underline">View Map</span>
+                  <Link to="/map" className="text-pacific-blue text-xs font-bold cursor-pointer hover:underline">View Map</Link>
                 </div>
-                <div className="relative flex-1 rounded-lg overflow-hidden border border-blue-50 bg-slate-100">
-                  <img alt="City Map Preview" className="w-full h-full object-cover grayscale opacity-50" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnliTmhb07m0h_4DiIofSo4LenedJuertRw3OYz6yqWYG5EmiCsL4NvI1DEYhKA3bxzc6M1KN0OG5Lp_DPFaLTFrdFigaAJ33XFuread5MzaJumyb4Svytzy4wZ4xVtZA3L2k1gm2rk-BUg9m7YbX6ibY8eS2PPQVQN3ABlBaNoQWptlWw8pJXh8CjO9svuBRWtHsVLc6_L1uVHvYHRDozEt_-TBYHvevhtOsvg90YVB8AXTt0v1sPQwpshbD1t02hEHfHc6ti7A" />
-                  <div className="absolute top-1/4 left-1/3 w-4 h-4 bg-error rounded-full border-2 border-white shadow-lg animate-pulse"></div>
-                  <div className="absolute bottom-1/3 right-1/4 w-3 h-3 bg-secondary rounded-full border-2 border-white shadow-lg"></div>
-                  <div className="absolute top-1/2 right-1/2 w-3 h-3 bg-ocean-teal rounded-full border-2 border-white shadow-lg"></div>
+                <div className="relative flex-1 rounded-lg overflow-hidden border border-blue-50 bg-slate-100 min-h-[200px] z-0">
+                  {places.length > 0 ? (
+                    <MapContainer
+                      center={[-6.914744, 107.60981]}
+                      zoom={12}
+                      style={{ width: '100%', height: '100%' }}
+                      zoomControl={false}
+                      dragging={false}
+                      scrollWheelZoom={false}
+                      doubleClickZoom={false}
+                    >
+                      <TileLayer
+                        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                      />
+                      {topPlaces.map((p, i) => {
+                        const pos = parseCoords(p.coordinates)
+                        if (!pos) return null
+                        const color = i === 0 ? '#ef4444' : '#f97316' // red for highest, orange for second
+                        return (
+                          <Circle
+                            key={p.id}
+                            center={[pos.lat, pos.lng]}
+                            radius={450}
+                            pathOptions={{ fillColor: color, color: color, fillOpacity: 0.5, stroke: false }}
+                          />
+                        )
+                      })}
+                    </MapContainer>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xs text-slate-400">Loading Map...</div>
+                  )}
                 </div>
                 <div className="mt-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-error"></div>
-                      <span className="text-sm font-semibold text-on-surface">SCBD District</span>
+                  {topPlaces.map((place, idx) => (
+                    <div key={place.id} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${idx === 0 ? 'bg-error' : 'bg-orange-500'}`}></div>
+                        <span className="text-sm font-semibold text-on-surface line-clamp-1">{place.name}</span>
+                      </div>
+                      <span className={`text-xs font-bold ${idx === 0 ? 'text-error' : 'text-orange-500'}`}>
+                        {idx === 0 ? 'High' : 'Medium'}
+                      </span>
                     </div>
-                    <span className="text-xs font-bold text-error">High</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-secondary-container"></div>
-                      <span className="text-sm font-semibold text-on-surface">Senopati Area</span>
-                    </div>
-                    <span className="text-xs font-bold text-secondary">Medium</span>
-                  </div>
+                  ))}
                 </div>
               </div>
             </section>
