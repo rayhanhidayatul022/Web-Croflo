@@ -55,6 +55,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [userName, setUserName] = useState('User')
+  const [featuredIndex, setFeaturedIndex] = useState(0)
+  const [isTransitioning, setIsTransitioning] = useState(false)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -110,11 +112,23 @@ export default function Home() {
     }
   }, [])
 
+  useEffect(() => {
+    if (places.length <= 1) return
+    const timer = setInterval(() => {
+      setIsTransitioning(true)
+      setTimeout(() => {
+        setFeaturedIndex(prev => (prev + 1) % places.length)
+        setIsTransitioning(false)
+      }, 750)
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [places.length])
+
   const openPlace = (place: Place) => {
     navigate(`/place/${place.id}`, { state: { place } })
   }
 
-  const featuredPlace = useMemo(() => places[0], [places])
+  const featuredPlace = useMemo(() => places[featuredIndex] ?? places[0], [places, featuredIndex])
   const topPlaces = useMemo(() => {
     return [...places].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0)).slice(0, 2)
   }, [places])
@@ -136,25 +150,23 @@ export default function Home() {
           <div className="grid grid-cols-12 gap-6">
             {/* Large Feature Card: Current Spot (placeholder) */}
             <section className="col-span-12 lg:col-span-8">
-              <div className="relative bg-white rounded-lg overflow-hidden shadow-lg border border-blue-50 h-[420px] group">
-                <img
-                  alt={featuredPlace?.name ?? 'Featured place'}
-                  className="absolute inset-0 w-full h-full object-cover"
-                  src={featuredPlace?.image ?? 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=1400&auto=format&fit=crop'}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-primary-container/90 via-primary-container/20 to-transparent"></div>
-                <div className="absolute bottom-0 left-0 p-8 w-full flex justify-between items-end">
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="inline-block w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-                      <span className="text-sky-tint text-sm font-bold uppercase tracking-widest">Live Now</span>
+              <div className="relative bg-[#0F2046] rounded-lg overflow-hidden shadow-lg border border-blue-50 h-[420px] group">
+                <div className={`absolute inset-0 transition-all duration-[750ms] ease-in-out ${isTransitioning ? 'opacity-0 blur-md scale-105' : 'opacity-100 blur-0 scale-100'}`}>
+                  <img
+                    alt={featuredPlace?.name ?? 'Featured place'}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    src={featuredPlace?.image ?? 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=1400&auto=format&fit=crop'}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-primary-container/90 via-primary-container/20 to-transparent"></div>
+                  <div className="absolute bottom-0 left-0 p-8 w-full flex justify-between items-end">
+                    <div>
+                      <h3 className="text-white text-3xl font-extrabold mb-1">{featuredPlace?.name ?? 'Loading places...'}</h3>
+                      <p className="text-blue-100/80 font-medium">{formatCoordinates(featuredPlace?.coordinates)}</p>
                     </div>
-                    <h3 className="text-white text-3xl font-extrabold mb-1">{featuredPlace?.name ?? 'Loading places...'}</h3>
-                    <p className="text-blue-100/80 font-medium">{formatCoordinates(featuredPlace?.coordinates)}</p>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-md p-6 rounded-lg border border-white/20 text-center min-w-[140px]">
-                    <span className="block text-4xl font-black text-white leading-none">{featuredPlace?.rating ?? '—'}</span>
-                    <span className="text-[10px] text-blue-100 uppercase tracking-widest font-bold mt-2 block">Rating</span>
+                    <div className="bg-white/10 backdrop-blur-md p-6 rounded-lg border border-white/20 text-center min-w-[140px]">
+                      <span className="block text-4xl font-black text-white leading-none">{featuredPlace?.rating ?? '—'}</span>
+                      <span className="text-[10px] text-blue-100 uppercase tracking-widest font-bold mt-2 block">Rating</span>
+                    </div>
                   </div>
                 </div>
                 <div className="absolute top-6 left-6">
