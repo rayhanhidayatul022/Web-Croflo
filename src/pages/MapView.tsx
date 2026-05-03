@@ -22,11 +22,11 @@ const getDensityColor = (level: string) => {
 
 const customMarkerIcon = L.divIcon({
   className: 'bg-transparent',
-  html: `<div class="w-10 h-10 bg-[#0F2046] text-white rounded-full flex items-center justify-center shadow-xl border-[3px] border-white hover:scale-110 transition-transform cursor-pointer">
+  html: `<div class="w-full h-full bg-[#0F2046] text-white rounded-full flex items-center justify-center shadow-xl border-[3px] border-white hover:scale-110 transition-transform cursor-pointer">
            <span class="material-symbols-outlined text-[20px]">location_on</span>
          </div>`,
   iconSize: [40, 40],
-  iconAnchor: [20, 40],
+  iconAnchor: [20, 20],
 })
 
 type Place = {
@@ -110,9 +110,7 @@ export default function MapView() {
     )
   }, [places, searchQuery])
 
-  const mapCenter = selectedPlace 
-    ? parseCoordinates(selectedPlace.coordinates) || { lat: -6.914744, lng: 107.60981 }
-    : { lat: -6.914744, lng: 107.60981 }
+  const mapCenter = { lat: -6.914744, lng: 107.60981 }
 
   if (loading) return <div className="flex h-screen items-center justify-center">Loading Map...</div>
 
@@ -127,12 +125,12 @@ export default function MapView() {
   const densityStatusBg = occupancyCount >= 30 ? 'bg-red-500' : occupancyCount >= 15 ? 'bg-yellow-500' : 'bg-green-500'
 
   return (
-    <div className="min-h-screen bg-background text-on-background selection:bg-secondary-container">
+    <div className="h-screen w-screen overflow-hidden bg-background text-on-background selection:bg-secondary-container">
       <Header />
       <NavBar />
       
-      <main className="lg:ml-64 mt-16 h-[calc(100vh-4rem)] relative overflow-hidden bg-surface-container-low">
-        <div className="absolute inset-0" style={{ zIndex: 0 }}>
+      <main className="absolute inset-0 top-16 lg:left-64 bg-surface-container-low">
+        <div className="absolute inset-0 z-0">
           <MapContainer
             ref={setMapInstance}
             center={[mapCenter.lat, mapCenter.lng]}
@@ -193,73 +191,73 @@ export default function MapView() {
         </div>
 
         {selectedPlace && (
-          <div className="absolute right-8 top-24 bottom-8 w-full max-w-[400px] hidden md:block z-20 transition-all">
-            <div className="bg-white/95 backdrop-blur-xl h-full rounded-[2.5rem] shadow-2xl border border-white/50 flex flex-col overflow-hidden">
-              <div className="h-48 relative">
+          <div className="absolute right-8 top-6 w-full max-w-[340px] hidden md:block z-20 transition-all max-h-[calc(100vh-8rem)]">
+            <div className="bg-white/95 backdrop-blur-xl h-auto rounded-3xl shadow-2xl border border-white/50 flex flex-col overflow-hidden">
+              <div className="h-36 relative shrink-0">
                 <img 
                   className="w-full h-full object-cover" 
                   src={selectedPlace.image || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=800'} 
                   alt={selectedPlace.name} 
                 />
-                <div className="absolute top-6 right-6 bg-white/30 backdrop-blur-md p-2 rounded-full cursor-pointer hover:bg-white/50 transition-colors" onClick={() => setSelectedPlace(null)}>
-                  <span className="material-symbols-outlined text-white">close</span>
+                <div className="absolute top-4 right-4 bg-white/30 backdrop-blur-md p-1.5 rounded-full cursor-pointer hover:bg-white/50 transition-colors" onClick={() => setSelectedPlace(null)}>
+                  <span className="material-symbols-outlined text-white text-sm">close</span>
                 </div>
-                <div className={`absolute bottom-6 left-8 ${densityStatusBg} text-white text-[11px] font-black px-4 py-1.5 rounded-full uppercase tracking-wider shadow-lg`}>
+                <div className={`absolute bottom-4 left-6 ${densityStatusBg} text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-lg`}>
                   {densityStatus}
                 </div>
               </div>
 
-              <div className="p-8 flex-1 overflow-y-auto">
-                <div className="flex justify-between items-start mb-6">
+              <div className="p-6 pb-2 flex-1 overflow-y-auto">
+                <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h2 className="text-2xl font-extrabold text-[#0F2046] leading-tight tracking-tight">{selectedPlace.name}</h2>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="material-symbols-outlined text-sm text-blue-600">location_on</span>
-                      <p className="text-slate-500 font-medium text-xs line-clamp-1">{selectedPlace.address || 'Jl. Asia Afrika No.65, Bandung'}</p>
+                    <h2 className="text-xl font-extrabold text-[#0F2046] leading-tight tracking-tight">{selectedPlace.name}</h2>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="material-symbols-outlined text-xs text-blue-600">location_on</span>
+                      <p className="text-slate-500 font-medium text-[10px] line-clamp-1">{selectedPlace.address || 'Jl. Asia Afrika No.65, Bandung'}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 mb-8">
-                  <div className="bg-slate-50 p-3 rounded-2xl flex flex-col items-center border border-slate-100">
-                    <span className="material-symbols-outlined text-blue-600 text-sm mb-1">groups</span>
-                    <span className="text-sm font-black text-[#0F2046]">{densityPercent}</span>
-                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Capacity</span>
+                <div className="grid grid-cols-3 gap-2 mb-6">
+                  <div className="bg-slate-50 p-2 rounded-xl flex flex-col items-center border border-slate-100">
+                    <span className="material-symbols-outlined text-blue-600 text-[16px] mb-1">groups</span>
+                    <span className="text-xs font-black text-[#0F2046]">{densityPercent}</span>
+                    <span className="text-[7px] font-bold text-slate-400 uppercase tracking-tighter">Capacity</span>
                   </div>
-                  <div className="bg-slate-50 p-3 rounded-2xl flex flex-col items-center border border-green-100 ring-2 ring-green-100/50">
-                    <span className="material-symbols-outlined text-green-500 text-sm mb-1">timer</span>
-                    <span className="text-sm font-black text-[#0F2046]">{waitTime}</span>
-                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Wait Time</span>
+                  <div className="bg-slate-50 p-2 rounded-xl flex flex-col items-center border border-green-100 ring-1 ring-green-100/50">
+                    <span className="material-symbols-outlined text-green-500 text-[16px] mb-1">timer</span>
+                    <span className="text-xs font-black text-[#0F2046]">{waitTime}</span>
+                    <span className="text-[7px] font-bold text-slate-400 uppercase tracking-tighter">Wait Time</span>
                   </div>
-                  <div className="bg-slate-50 p-3 rounded-2xl flex flex-col items-center border border-slate-100">
-                    <span className={`material-symbols-outlined ${trendColor} text-sm mb-1`}>{trendIcon}</span>
-                    <span className="text-sm font-black text-[#0F2046]">{trendLabel}</span>
-                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Trend</span>
+                  <div className="bg-slate-50 p-2 rounded-xl flex flex-col items-center border border-slate-100">
+                    <span className={`material-symbols-outlined ${trendColor} text-[16px] mb-1`}>{trendIcon}</span>
+                    <span className="text-xs font-black text-[#0F2046]">{trendLabel}</span>
+                    <span className="text-[7px] font-bold text-slate-400 uppercase tracking-tighter">Trend</span>
                   </div>
                 </div>
 
-                <div className="mb-8">
-                  <div className="flex justify-between items-end mb-4">
-                    <h3 className="text-[10px] font-black text-[#0F2046] uppercase tracking-widest">Crowd Prediction</h3>
+                <div className="mb-4">
+                  <div className="flex justify-between items-end mb-3">
+                    <h3 className="text-[9px] font-black text-[#0F2046] uppercase tracking-widest">Crowd Prediction</h3>
                   </div>
-                  <div className="relative h-20 w-full flex items-end justify-between px-1">
+                  <div className="relative h-16 w-full flex items-end justify-between px-1">
                     {[40, 55, 30, 45, 65].map((h, i) => (
                       <div 
                         key={i} 
-                        className={"w-8 rounded-t-lg transition-all " + (i === 2 ? 'bg-[#0F2046] shadow-lg' : 'bg-blue-100')} 
+                        className={"w-6 rounded-t-md transition-all " + (i === 2 ? 'bg-[#0F2046] shadow-md' : 'bg-blue-100')} 
                         style={{ height: h + '%' }}
                       >
-                        {i === 2 && <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-[8px] font-black text-[#0F2046]">Now</div>}
+                        {i === 2 && <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-[7px] font-black text-[#0F2046]">Now</div>}
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
 
-              <div className="p-8 pt-0">
+              <div className="p-6 pt-2 shrink-0">
                 <button 
                   onClick={handleSeeDetails}
-                  className="w-full bg-[#0F2046] text-white py-4 rounded-full font-black text-sm shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
+                  className="w-full bg-[#0F2046] text-white py-3.5 rounded-full font-black text-xs shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
                 >
                   <span>SEE LIVE DETAILS</span>
                   <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
