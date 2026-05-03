@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { useLocation, useParams } from 'react-router-dom'
+import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import { doc, getDoc } from 'firebase/firestore'
 import Header from '../components/Header'
 import NavBar from '../components/NavBar'
@@ -129,6 +129,7 @@ function getChartPeak(points: HourlyPoint[]) {
 export default function DetailPlace() {
   const { id } = useParams()
   const location = useLocation()
+  const navigate = useNavigate()
   const [place, setPlace] = useState<Place | undefined>((location.state as any)?.place)
   const [liveCount, setLiveCount] = useState<number | undefined>(undefined)
   const [liveImageUrl, setLiveImageUrl] = useState<string>('http://13.213.18.54:8000/video')
@@ -240,6 +241,13 @@ export default function DetailPlace() {
 
       <main className="min-h-screen lg:ml-64 pt-20 pb-12 px-8">
         <div className="max-w-7xl mx-auto space-y-8">
+          <button 
+            onClick={() => navigate(-1)} 
+            className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-primary-container transition-colors w-fit -mt-4 mb-2"
+          >
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            Back
+          </button>
           {loading && !place ? (
             <section className="rounded-3xl border border-sky-tint/20 bg-white p-8 shadow-[10px_20px_40px_-15px_rgba(15,32,70,0.08)]">
               <p className="text-xs font-bold uppercase tracking-[0.3em] text-on-secondary-container">Loading venue</p>
@@ -254,13 +262,7 @@ export default function DetailPlace() {
             <>
               <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                 <div>
-                  <nav className="flex flex-wrap items-center gap-2 text-xs text-on-primary-container mb-2 font-medium">
-                    <span>Places</span>
-                    <span className="material-symbols-outlined text-[10px]">chevron_right</span>
-                    <span>Bandung</span>
-                    <span className="material-symbols-outlined text-[10px]">chevron_right</span>
-                    <span className="text-primary-container font-bold">{place.name}</span>
-                  </nav>
+
                   <h1 className="text-4xl font-extrabold text-primary-container tracking-tight">{place.name}</h1>
                   <div className="flex items-center gap-2 mt-2">
                     <span className="material-symbols-outlined text-[#0d97a5] text-sm">location_on</span>
