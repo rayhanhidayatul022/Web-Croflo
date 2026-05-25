@@ -10,6 +10,11 @@ export default defineConfig({
         target: 'http://13.213.18.54:8000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/live/, '')
+      },
+      '/api/video': {
+        target: 'http://13.213.18.54:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/video/, '/video')
       }
     }
   }

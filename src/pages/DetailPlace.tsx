@@ -132,7 +132,7 @@ export default function DetailPlace() {
   const navigate = useNavigate()
   const [place, setPlace] = useState<Place | undefined>((location.state as any)?.place)
   const [liveCount, setLiveCount] = useState<number | undefined>(undefined)
-  const [liveImageUrl, setLiveImageUrl] = useState<string>('http://13.213.18.54:8000/video')
+  const [liveImageUrl, setLiveImageUrl] = useState<string>('/api/video')
   const [hourlyHistory, setHourlyHistory] = useState<HourlyPoint[]>(() => (id ? readHistory(id) : []))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -198,7 +198,7 @@ export default function DetailPlace() {
         const data = (await response.json()) as LiveMetrics
         const count = Number(data.count)
         const nextCount = Number.isFinite(count) ? count : 0
-        const nextImageUrl = 'http://13.213.18.54:8000/video'
+        const nextImageUrl = '/api/video'
 
         if (cancelled) return
 
@@ -208,7 +208,7 @@ export default function DetailPlace() {
       } catch {
         if (!cancelled) {
           setLiveCount(undefined)
-          setLiveImageUrl('http://13.213.18.54:8000/video')
+          setLiveImageUrl('/api/video')
         }
       }
     }
